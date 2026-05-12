@@ -64,7 +64,7 @@ export default function DirectoryPage() {
           <span style={{ color: '#ccc' }}>·</span>
           <div style={{ fontSize: 15, fontWeight: 500 }}>🐄 Gaushala Directory</div>
         </div>
-        <div style={{ fontSize: 13, color: '#888' }}>{total.toLocaleString()} gaushalas listed</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><div style={{ fontSize: 13, color: '#888' }}>{total.toLocaleString()} gaushalas listed</div><a href='/map' style={{ fontSize: 13, background: '#EAF3DE', color: '#3B6D11', padding: '6px 14px', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 6 }}>🗺️ Map view</a></div>
       </nav>
 
       {/* Search header */}

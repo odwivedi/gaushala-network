@@ -101,7 +101,7 @@ export default function DirectoryPage() {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
             {gaushalas.map(g => (
-              <div key={g.id} style={{ background: '#fff', border: '0.5px solid #e5e5e5', borderRadius: 12, padding: '18px', position: 'relative' }}>
+              <div key={g.id} style={{ background: '#fff', border: '0.5px solid #e5e5e5', borderRadius: 12, padding: '18px', position: 'relative', cursor: 'pointer' }} onClick={() => window.location.href = `/directory/${g.id}`}>
                 {g.is_verified && (
                   <span style={{ position: 'absolute', top: 14, right: 14, display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#3B6D11', background: '#EAF3DE', padding: '2px 8px', borderRadius: 20 }}>
                     <IconRosetteDiscountCheck size={12} /> Verified

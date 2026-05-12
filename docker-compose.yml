@@ -1,0 +1,67 @@
+services:
+  gaushala-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gaushala-web
+    restart: unless-stopped
+    ports:
+      - "3003:3000"
+    env_file:
+      - .env
+    depends_on:
+      - gaushala-postgres
+      - gaushala-mongo
+      - gaushala-meilisearch
+    networks:
+      - gaushala-net
+
+  gaushala-postgres:
+    image: postgres:16
+    container_name: gaushala-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./data/postgres:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5433:5432"
+    networks:
+      - gaushala-net
+
+  gaushala-mongo:
+    image: mongo:7.0
+    container_name: gaushala-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DB}
+    volumes:
+      - ./data/mongo:/data/db
+    ports:
+      - "127.0.0.1:27018:27017"
+    networks:
+      - gaushala-net
+
+  gaushala-meilisearch:
+    image: getmeili/meilisearch:v1.7
+    container_name: gaushala-meilisearch
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+      MEILI_ENV: production
+    volumes:
+      - ./data/meilisearch:/meili_data
+    ports:
+      - "127.0.0.1:7701:7700"
+    networks:
+      - gaushala-net
+
+networks:
+  gaushala-net:
+    name: gaushala-net
+    driver: bridge

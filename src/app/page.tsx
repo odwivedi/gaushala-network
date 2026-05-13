@@ -82,7 +82,8 @@ export default function Home() {
           {['Directory', 'Map', 'Wiki', 'Scripture', 'Jyotish', 'Culture'].map(link => (
             <a key={link} href={link === 'Map' ? '/map' : `/${link.toLowerCase()}`} style={{ fontSize: 13, color: '#555' }}>{link}</a>
           ))}
-          <a href="/contribute" style={{ fontSize: 13, background: '#3B6D11', color: '#EAF3DE', padding: '6px 16px', borderRadius: 8 }}>Contribute</a>
+          <a href="/login" style={{ fontSize: 13, color: '#555' }}>Sign in</a>
+          <a href="/register" style={{ fontSize: 13, background: '#3B6D11', color: '#EAF3DE', padding: '6px 16px', borderRadius: 8 }}>Register</a>
         </div>
       </nav>
 

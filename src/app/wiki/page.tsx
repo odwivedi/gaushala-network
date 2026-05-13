@@ -2,6 +2,7 @@
 import logger from '@/lib/logger';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import SiteNav from '@/components/SiteNav';
 
 interface Article {
   id: number;
@@ -48,6 +49,7 @@ export default function WikiPage() {
   }, [search, activeCategory]);
 
   return (
+    <><SiteNav />
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '2rem 1rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <div>
@@ -110,5 +112,6 @@ export default function WikiPage() {
         </div>
       )}
     </div>
+    </>
   );
 }

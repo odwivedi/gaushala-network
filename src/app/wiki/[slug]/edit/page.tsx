@@ -2,6 +2,7 @@
 import logger from '@/lib/logger';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import SiteNav from '@/components/SiteNav';
 import { useParams, useRouter } from 'next/navigation';
 import WikiEditor from '@/components/WikiEditor';
 
@@ -79,6 +80,7 @@ export default function EditArticlePage() {
   if (loading) return <div style={{ padding: '2rem', color: '#666' }}>Loading...</div>;
 
   return (
+    <><SiteNav />
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '2rem 1rem' }}>
       <div style={{ marginBottom: '1rem' }}>
         <Link href={`/wiki/${slug}`} style={{ color: '#3B6D11', textDecoration: 'none', fontSize: '0.9rem' }}>← Cancel</Link>
@@ -129,5 +131,6 @@ export default function EditArticlePage() {
         </button>
       </div>
     </div>
+    </>
   );
 }

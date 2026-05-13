@@ -1,6 +1,7 @@
 import logger from '@/lib/logger';
 import { query } from '@/lib/db-postgres';
 import { getArticleContent, saveArticleContent } from '@/lib/db-mongo';
+import { getSessionFromRequest } from '@/lib/auth';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(_req: NextRequest, { params }: { params: { slug: string } }) {
@@ -37,6 +38,7 @@ export async function GET(_req: NextRequest, { params }: { params: { slug: strin
 
 export async function PUT(req: NextRequest, { params }: { params: { slug: string } }) {
   try {
+    const user = await getSessionFromRequest(req);
     const body = await req.json();
     const { title, summary, content, edit_summary, category_id } = body;
 
@@ -52,20 +54,33 @@ export async function PUT(req: NextRequest, { params }: { params: { slug: string
     const article = existing.rows[0];
     const mongoId = await saveArticleContent(content, article.mongo_content_id);
 
+    const trustLevel = user ? (user.edits_require_review ? 'registered' : 'contributor') : 'anonymous';
+    const requiresReview = !user || user.edits_require_review;
+
     await query(
       `UPDATE articles SET title = $1, summary = $2, category_id = $3, updated_at = NOW()
        WHERE slug = $4`,
       [title || article.title, summary || article.summary, category_id || article.category_id, params.slug]
     );
 
-    await query(
-      `INSERT INTO article_revisions (article_id, mongo_content_id, edit_summary, trust_level)
-       VALUES ($1, $2, $3, 'ai_generated')`,
-      [article.id, mongoId, edit_summary || 'Updated']
+    const revResult = await query(
+      `INSERT INTO article_revisions (article_id, mongo_content_id, edit_summary, trust_level, edited_by)
+       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+      [article.id, mongoId, edit_summary || 'Updated', trustLevel, user?.id || null]
     );
 
-    logger.info('API', 'wiki/[slug]/route.ts', 'Article updated', { slug: params.slug });
-    return NextResponse.json({ success: true });
+    if (requiresReview) {
+      await query(
+        `INSERT INTO moderation_queue (article_id, revision_id, submitted_by, status)
+         VALUES ($1, $2, $3, 'pending')`,
+        [article.id, revResult.rows[0].id, user?.id || null]
+      );
+      logger.info('API', 'wiki/[slug]/route.ts', 'Edit sent to moderation queue', { slug: params.slug, user_id: user?.id });
+      return NextResponse.json({ success: true, queued: true, message: 'Your edit has been submitted for review.' });
+    }
+
+    logger.info('API', 'wiki/[slug]/route.ts', 'Article updated directly', { slug: params.slug, user_id: user?.id });
+    return NextResponse.json({ success: true, queued: false });
   } catch (err) {
     logger.error('API', 'wiki/[slug]/route.ts', 'PUT failed', { slug: params.slug, err: String(err) });
     return NextResponse.json({ success: false, error: 'Failed to update article' }, { status: 500 });

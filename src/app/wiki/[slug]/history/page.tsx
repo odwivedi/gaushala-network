@@ -2,6 +2,7 @@
 import logger from '@/lib/logger';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import SiteNav from '@/components/SiteNav';
 import { useParams } from 'next/navigation';
 import * as Diff from 'diff';
 
@@ -56,6 +57,7 @@ export default function HistoryPage() {
   if (error) return <div style={{ padding: '2rem', color: '#c00' }}>{error}</div>;
 
   return (
+    <><SiteNav />
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '2rem 1rem' }}>
       <div style={{ marginBottom: '1rem' }}>
         <Link href={`/wiki/${slug}`} style={{ color: '#3B6D11', textDecoration: 'none', fontSize: '0.9rem' }}>← Back to article</Link>
@@ -120,5 +122,6 @@ export default function HistoryPage() {
         </div>
       )}
     </div>
+    </>
   );
 }

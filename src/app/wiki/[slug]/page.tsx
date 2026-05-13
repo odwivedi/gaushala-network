@@ -2,6 +2,7 @@
 import logger from '@/lib/logger';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import SiteNav from '@/components/SiteNav';
 import { useParams } from 'next/navigation';
 
 interface Article {
@@ -43,6 +44,7 @@ export default function ArticlePage() {
   if (!article) return null;
 
   return (
+    <><SiteNav />
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '2rem 1rem' }}>
       <div style={{ marginBottom: '1rem' }}>
         <Link href="/wiki" style={{ color: '#3B6D11', textDecoration: 'none', fontSize: '0.9rem' }}>← Knowledge Base</Link>
@@ -86,5 +88,6 @@ export default function ArticlePage() {
         ))}
       </div>
     </div>
+    </>
   );
 }

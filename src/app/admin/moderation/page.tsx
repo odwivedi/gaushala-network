@@ -1,6 +1,6 @@
 'use client';
 import logger from '@/lib/logger';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import * as Diff from 'diff';
 
@@ -29,7 +29,7 @@ export default function ModerationPage() {
   const [reviewNote, setReviewNote] = useState('');
   const [processing, setProcessing] = useState<number | null>(null);
 
-  function fetchQueue(tab: string) {
+  const fetchQueue = useCallback((tab: string) => {
     if (!authed) return;
     setLoading(true);
     fetch(`/api/admin/moderation?status=${tab}`, {
@@ -39,9 +39,9 @@ export default function ModerationPage() {
       .then(d => { if (d.success) setItems(d.items); })
       .catch(err => logger.error('UI', 'admin/moderation/page.tsx', 'Fetch failed', { err: String(err) }))
       .finally(() => setLoading(false));
-  }
+  }, [secret, authed]);
 
-  useEffect(() => { if (authed) fetchQueue(activeTab); }, [authed, activeTab]);
+  useEffect(() => { if (authed) fetchQueue(activeTab); }, [authed, activeTab, fetchQueue]);
 
   async function handleAction(id: number, action: 'approve' | 'reject') {
     setProcessing(id);

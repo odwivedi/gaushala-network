@@ -24,6 +24,24 @@ export default function ArticlePage() {
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showFlagForm, setShowFlagForm] = useState(false);
+  const [flagReason, setFlagReason] = useState('incorrect');
+  const [flagNote, setFlagNote] = useState('');
+  const [flagSubmitted, setFlagSubmitted] = useState(false);
+  const [flagSubmitting, setFlagSubmitting] = useState(false);
+
+  function submitFlag() {
+    setFlagSubmitting(true);
+    fetch(`/api/wiki/${slug}/flag`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason: flagReason, note: flagNote })
+    }).then(r => r.json()).then(d => {
+      if (d.success) { setFlagSubmitted(true); setShowFlagForm(false); }
+      else alert('Failed: ' + d.error);
+      setFlagSubmitting(false);
+    });
+  }
 
   useEffect(() => {
     if (!slug) return;
@@ -57,7 +75,37 @@ export default function ArticlePage() {
           style={{ background: '#3B6D11', color: '#fff', padding: '0.5rem 1rem', borderRadius: 8, textDecoration: 'none', fontWeight: 600, whiteSpace: 'nowrap' }}>
           Edit
         </Link>
+        {flagSubmitted ? (
+          <span style={{ color: '#856404', background: '#FFF3CD', padding: '0.5rem 1rem', borderRadius: 8, fontSize: 14 }}>⚑ Flagged — thank you</span>
+        ) : (
+          <button onClick={() => setShowFlagForm(!showFlagForm)}
+            style={{ background: '#fff', color: '#c0392b', border: '1px solid #c0392b', padding: '0.5rem 1rem', borderRadius: 8, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' }}>
+            ⚑ Flag
+          </button>
+        )}
       </div>
+      {showFlagForm && article && (
+        <div style={{ background: '#fff8f8', border: '1px solid #f5c6cb', borderRadius: 10, padding: '1rem', marginBottom: '1rem', display: 'flex', gap: 8, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <select value={flagReason} onChange={e => setFlagReason(e.target.value)}
+            style={{ padding: '0.4rem', borderRadius: 6, border: '1px solid #ccc', fontSize: 13 }}>
+            <option value="incorrect">Incorrect information</option>
+            <option value="outdated">Outdated content</option>
+            <option value="spam">Spam or vandalism</option>
+            <option value="copyright">Copyright violation</option>
+            <option value="other">Other</option>
+          </select>
+          <input placeholder="Additional note (optional)" value={flagNote} onChange={e => setFlagNote(e.target.value)}
+            style={{ flex: 1, padding: '0.4rem', borderRadius: 6, border: '1px solid #ccc', fontSize: 13, minWidth: 180 }} />
+          <button onClick={() => submitFlag()} disabled={flagSubmitting}
+            style={{ padding: '0.4rem 1rem', background: '#c0392b', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
+            {flagSubmitting ? 'Submitting...' : 'Submit Flag'}
+          </button>
+          <button onClick={() => setShowFlagForm(false)}
+            style={{ padding: '0.4rem 0.8rem', background: '#fff', color: '#666', border: '1px solid #ccc', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>
+            Cancel
+          </button>
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
         {article.category_name && (

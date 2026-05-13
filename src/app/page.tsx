@@ -1,71 +1,68 @@
+'use client';
+import { useEffect, useState } from 'react';
 import { IconSearch, IconMapPin, IconBook, IconOm, IconStars, IconPalette, IconUsers, IconLock, IconLeaf } from '@tabler/icons-react';
 
-const stats = [
-  { num: '5,200+', label: 'Gaushalas listed' },
-  { num: '320+', label: 'Wiki articles' },
-  { num: '1,800+', label: 'Scriptural references' },
-  { num: '28', label: 'Indian states covered' },
-];
-
-const layers = [
-  {
-    icon: <IconMapPin size={20} color="#3B6D11" />,
-    bg: '#EAF3DE',
-    title: 'Gaushala directory',
-    desc: 'Every gaushala in India — searchable by state, district, or pincode. Verified listings with map.',
-    count: '5,200+ listings',
-    href: '/directory',
-  },
-  {
-    icon: <IconBook size={20} color="#3B6D11" />,
-    bg: '#EAF3DE',
-    title: 'Knowledge base',
-    desc: 'Breeds, diseases, treatments, nutrition, research. Wiki-style, community-edited, fully referenced.',
-    count: '320+ articles',
-    href: '/wiki',
-  },
-  {
-    icon: <IconOm size={20} color="#854F0B" />,
-    bg: '#FAEEDA',
-    title: 'Scriptural references',
-    desc: 'The cow in Vedas, Puranas, Mahabharata, Ayurveda — Sanskrit, transliteration, Hindi, English.',
-    count: '1,800+ shlokas',
-    href: '/scripture',
-  },
-  {
-    icon: <IconStars size={20} color="#854F0B" />,
-    bg: '#FAEEDA',
-    title: 'Jyotish & remedies',
-    desc: 'Go-daan, remedies by graha, muhurta for Gau Seva. Classical Jyotish knowledge, cited and structured.',
-    count: 'Coming soon',
-    href: '/jyotish',
-  },
-  {
-    icon: <IconPalette size={20} color="#3B6D11" />,
-    bg: '#EAF3DE',
-    title: 'Culture & traditions',
-    desc: 'Festivals, folk art, regional traditions — Gopashtami to Mattu Pongal. Every state of India.',
-    count: 'Coming soon',
-    href: '/culture',
-  },
-  {
-    icon: <IconUsers size={20} color="#3B6D11" />,
-    bg: '#EAF3DE',
-    title: 'Community',
-    desc: 'Connect with vets, scholars, gaushala managers. Contribute knowledge. Coordinate resources.',
-    count: 'Join the network',
-    href: '/community',
-  },
-];
-
-const recent = [
-  { tag: 'Wiki', tagBg: '#EAF3DE', tagColor: '#27500A', title: 'Gir cow — breed profile, milk yield, and disease resistance', meta: 'AI-generated · pending verification' },
-  { tag: 'Scripture', tagBg: '#FAEEDA', tagColor: '#633806', title: 'Rigveda 6.28 — Aghnya shlokas on the inviolability of the cow', meta: 'Sanskrit · Hindi · English · Source cited' },
-  { tag: 'Directory', tagBg: '#EAF3DE', tagColor: '#27500A', title: 'Shri Krishna Gaushala, Mathura — listing claimed and verified', meta: 'Uttar Pradesh · 340 cows · Verified member' },
-  { tag: 'Wiki', tagBg: '#EAF3DE', tagColor: '#27500A', title: 'Foot and mouth disease — symptoms, treatment protocol, prevention', meta: 'Reviewed by verified veterinarian · ICAR source' },
-];
+// layers defined inside component
 
 export default function Home() {
+  const [layerCounts, setLayerCounts] = useState({ gaushalas: 200, articles: 0, shlokas: 4, grahas: 9, festivals: 7, members: 0 });
+
+  const [recentItems, setRecentItems] = useState<{tag:string;tagBg:string;tagColor:string;title:string;meta:string;href:string}[]>([]);
+
+  const [stats, setStats] = useState([
+    { num: '...', label: 'Gaushalas listed' },
+    { num: '...', label: 'Wiki articles' },
+    { num: '...', label: 'Scriptural references' },
+    { num: '28', label: 'Indian states covered' },
+  ]);
+  
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/directory?limit=1').then(r => r.json()),
+      fetch('/api/wiki/categories').then(r => r.json()),
+      fetch('/api/scripture').then(r => r.json()),
+    ]).then(([dir, wiki, scripture]) => {
+      const gaushalaCount = dir.total || 200;
+      const articleCount = wiki.categories?.reduce((a: number, c: {article_count: string}) => a + parseInt(c.article_count || '0'), 0) || 0;
+      const scriptureCount = scripture.total || 0;
+      setStats([
+        { num: gaushalaCount.toLocaleString('en-IN') + '+', label: 'Gaushalas listed' },
+        { num: String(articleCount), label: 'Wiki articles' },
+        { num: String(scriptureCount), label: 'Scriptural references' },
+        { num: '28', label: 'Indian states covered' },
+      ]);
+    }).catch(() => {});
+
+  Promise.all([
+    fetch('/api/directory?limit=1').then(r => r.json()),
+    fetch('/api/wiki/categories').then(r => r.json()),
+    fetch('/api/scripture').then(r => r.json()),
+    fetch('/api/community/profile').then(r => r.json()),
+  ]).then(([dir, wiki, scr, members]) => {
+    setLayerCounts({
+      gaushalas: dir.total || 200,
+      articles: wiki.categories?.reduce((a: number, c: {article_count: string}) => a + parseInt(c.article_count || '0'), 0) || 0,
+      shlokas: scr.total || 4,
+      grahas: 9,
+      festivals: 7,
+      members: members.members?.length || 0,
+    });
+  }).catch(() => {});
+
+  fetch('/api/recent').then(r => r.json()).then(d => {
+    if (d.success) setRecentItems(d.items);
+  }).catch(() => {});
+  }, []);
+
+  const layers = [
+    { icon: <IconMapPin size={20} color="#3B6D11" />, bg: '#EAF3DE', title: 'Gaushala directory', desc: 'Every gaushala in India — searchable by state, district, or pincode. Verified listings with map.', count: `${layerCounts.gaushalas}+ listings`, href: '/directory' },
+    { icon: <IconBook size={20} color="#3B6D11" />, bg: '#EAF3DE', title: 'Knowledge base', desc: 'Breeds, diseases, treatments, nutrition, research. Wiki-style, community-edited, fully referenced.', count: `${layerCounts.articles} articles`, href: '/wiki' },
+    { icon: <IconOm size={20} color="#854F0B" />, bg: '#FAEEDA', title: 'Scriptural references', desc: 'The cow in Vedas, Puranas, Mahabharata, Ayurveda — Sanskrit, transliteration, Hindi, English.', count: `${layerCounts.shlokas} shlokas`, href: '/scripture' },
+    { icon: <IconStars size={20} color="#854F0B" />, bg: '#FAEEDA', title: 'Jyotish & remedies', desc: 'Go-daan, remedies by graha, muhurta for Gau Seva. Classical Jyotish knowledge, cited and structured.', count: `${layerCounts.grahas} grahas documented`, href: '/jyotish' },
+    { icon: <IconPalette size={20} color="#3B6D11" />, bg: '#EAF3DE', title: 'Culture & traditions', desc: 'Festivals, folk art, regional traditions — Gopashtami to Mattu Pongal. Every state of India.', count: `${layerCounts.festivals} festivals documented`, href: '/culture' },
+    { icon: <IconUsers size={20} color="#3B6D11" />, bg: '#EAF3DE', title: 'Community', desc: 'Connect with vets, scholars, gaushala managers. Contribute knowledge. Coordinate resources.', count: `${layerCounts.members} members`, href: '/community' },
+  ];
+
   return (
     <main>
 
@@ -79,7 +76,7 @@ export default function Home() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
-          {['Directory', 'Map', 'Wiki', 'Scripture', 'Jyotish', 'Culture'].map(link => (
+          {['Directory', 'Map', 'Wiki', 'Scripture', 'Jyotish', 'Culture', 'Community'].map(link => (
             <a key={link} href={link === 'Map' ? '/map' : `/${link.toLowerCase()}`} style={{ fontSize: 13, color: '#555' }}>{link}</a>
           ))}
           <a href="/login" style={{ fontSize: 13, color: '#555' }}>Sign in</a>
@@ -143,7 +140,7 @@ export default function Home() {
           <h2 style={{ fontSize: 16, fontWeight: 500, marginBottom: 4 }}>Recently added</h2>
           <p style={{ fontSize: 13, color: '#888', marginBottom: 20 }}>Latest contributions from the community</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            {recent.map(r => (
+            {recentItems.map(r => (
               <div key={r.title} style={{ border: '0.5px solid #e5e5e5', borderRadius: 10, padding: '14px' }}>
                 <span style={{ fontSize: 11, fontWeight: 500, background: r.tagBg, color: r.tagColor, padding: '3px 8px', borderRadius: 20, display: 'inline-block', marginBottom: 8 }}>{r.tag}</span>
                 <div style={{ fontSize: 13, fontWeight: 500, color: '#1a1a1a', marginBottom: 4, lineHeight: 1.4 }}>{r.title}</div>

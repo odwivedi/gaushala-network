@@ -38,3 +38,31 @@ a {
 a:hover {
   color: var(--green-dark);
 }
+
+/* Wiki Editor */
+.wiki-editor { border: none; }
+.wiki-editor .toolbar { display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0.6rem; border-bottom: 1px solid #e0e0e0; background: #f9f9f9; }
+.wiki-editor .toolbar button { padding: 0.3rem 0.65rem; border: 1px solid #ccc; border-radius: 5px; background: #fff; cursor: pointer; font-size: 0.85rem; color: #333; }
+.wiki-editor .toolbar button:hover { background: #EAF3DE; border-color: #3B6D11; color: #3B6D11; }
+.wiki-editor .toolbar button.active { background: #3B6D11; color: #fff; border-color: #3B6D11; }
+.wiki-editor .editor-content { padding: 1rem 1.25rem; min-height: 300px; outline: none; background: #fff; cursor: text; }
+.wiki-editor .editor-content ul { list-style-type: disc; padding-left: 1.5rem; }
+.wiki-editor .editor-content ol { list-style-type: decimal; padding-left: 1.5rem; }
+.wiki-editor .editor-content li { margin-bottom: 0.25rem; }
+.wiki-editor .editor-content .ProseMirror { outline: none; min-height: 280px; }
+.wiki-editor .editor-content .ProseMirror:focus { outline: none; }
+.wiki-editor .editor-content p { margin: 0 0 0.75rem; }
+.wiki-editor .editor-content h2 { color: #3B6D11; font-size: 1.4rem; margin: 1.25rem 0 0.5rem; }
+.wiki-editor .editor-content h3 { color: #3B6D11; font-size: 1.15rem; margin: 1rem 0 0.4rem; }
+.wiki-editor .editor-content ul, .wiki-editor .editor-content ol { padding-left: 1.5rem; margin-bottom: 0.75rem; }
+.wiki-editor .editor-content blockquote { border-left: 3px solid #3B6D11; margin: 0.75rem 0; padding-left: 1rem; color: #555; font-style: italic; }
+
+/* Article prose */
+.prose-content { line-height: 1.8; color: #333; font-size: 1rem; }
+.prose-content h2 { color: #3B6D11; font-size: 1.4rem; font-weight: 700; margin: 1.5rem 0 0.5rem; }
+.prose-content h3 { color: #3B6D11; font-size: 1.15rem; font-weight: 600; margin: 1.25rem 0 0.4rem; }
+.prose-content p { margin: 0 0 0.85rem; }
+.prose-content ul, .prose-content ol { padding-left: 1.5rem; margin-bottom: 0.85rem; }
+.prose-content li { margin-bottom: 0.3rem; }
+.prose-content blockquote { border-left: 3px solid #3B6D11; margin: 1rem 0; padding-left: 1rem; color: #555; font-style: italic; }
+.prose-content strong { font-weight: 700; color: #222; }

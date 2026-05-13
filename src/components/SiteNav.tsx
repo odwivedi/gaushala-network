@@ -40,7 +40,7 @@ export default function SiteNav() {
       </div>
 
       <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
-        {['Directory', 'Map', 'Wiki'].map(link => (
+        {['Directory', 'Map', 'Wiki', 'Ask'].map(link => (
           <Link key={link} href={link === 'Map' ? '/map' : `/${link.toLowerCase()}`}
             style={{ fontSize: 13, color: '#555', textDecoration: 'none' }}>{link}</Link>
         ))}

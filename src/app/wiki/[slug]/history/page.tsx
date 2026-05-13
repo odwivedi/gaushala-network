@@ -2,8 +2,8 @@
 import logger from '@/lib/logger';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import SiteNav from '@/components/SiteNav';
 import { useParams } from 'next/navigation';
+import SiteNav from '@/components/SiteNav';
 import * as Diff from 'diff';
 
 interface Revision {
@@ -12,6 +12,8 @@ interface Revision {
   trust_level: string;
   created_at: string;
   content: string;
+  editor_name: string;
+  edited_by: number;
 }
 
 export default function HistoryPage() {
@@ -22,6 +24,8 @@ export default function HistoryPage() {
   const [compareA, setCompareA] = useState<number | null>(null);
   const [compareB, setCompareB] = useState<number | null>(null);
   const [diff, setDiff] = useState<Diff.Change[]>([]);
+  const [reverting, setReverting] = useState<number | null>(null);
+  const [revertMsg, setRevertMsg] = useState('');
 
   useEffect(() => {
     fetch(`/api/wiki/${slug}/revisions`)
@@ -33,9 +37,7 @@ export default function HistoryPage() {
             setCompareA(d.revisions[1].id);
             setCompareB(d.revisions[0].id);
           }
-        } else {
-          setError(d.error);
-        }
+        } else { setError(d.error); }
       })
       .catch(err => {
         logger.error('UI', 'wiki/[slug]/history/page.tsx', 'Fetch failed', { slug, err: String(err) });
@@ -53,11 +55,35 @@ export default function HistoryPage() {
     setDiff(Diff.diffWords(stripped(a.content), stripped(b.content)));
   }, [compareA, compareB, revisions]);
 
-  if (loading) return <div style={{ padding: '2rem', color: '#666' }}>Loading...</div>;
-  if (error) return <div style={{ padding: '2rem', color: '#c00' }}>{error}</div>;
+  async function handleRevert(revision_id: number) {
+    setReverting(revision_id);
+    setRevertMsg('');
+    try {
+      const res = await fetch(`/api/wiki/${slug}/revert`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ revision_id }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setRevertMsg(data.queued ? 'Revert submitted for review.' : 'Article reverted successfully.');
+      } else {
+        setRevertMsg(data.error);
+      }
+    } catch (err) {
+      logger.error('UI', 'wiki/[slug]/history/page.tsx', 'Revert failed', { err: String(err) });
+      setRevertMsg('Revert failed. Please try again.');
+    } finally {
+      setReverting(null);
+    }
+  }
+
+  if (loading) return <><SiteNav /><div style={{ padding: '2rem', color: '#666' }}>Loading...</div></>;
+  if (error) return <><SiteNav /><div style={{ padding: '2rem', color: '#c00' }}>{error}</div></>;
 
   return (
-    <><SiteNav />
+    <>
+    <SiteNav />
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '2rem 1rem' }}>
       <div style={{ marginBottom: '1rem' }}>
         <Link href={`/wiki/${slug}`} style={{ color: '#3B6D11', textDecoration: 'none', fontSize: '0.9rem' }}>← Back to article</Link>
@@ -65,14 +91,22 @@ export default function HistoryPage() {
 
       <h1 style={{ color: '#3B6D11', fontSize: '1.75rem', fontWeight: 700, marginBottom: '1.5rem' }}>Revision History</h1>
 
+      {revertMsg && (
+        <div style={{ background: revertMsg.includes('failed') || revertMsg.includes('error') ? '#FFF3CD' : '#D4EDDA', border: '1px solid #ccc', borderRadius: 8, padding: '0.75rem 1rem', marginBottom: '1rem', color: '#333', fontSize: '0.9rem' }}>
+          {revertMsg}
+        </div>
+      )}
+
       <div style={{ border: '1px solid #e0e0e0', borderRadius: 10, overflow: 'hidden', marginBottom: '2rem' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#EAF3DE' }}>
               <th style={{ padding: '0.75rem 1rem', textAlign: 'left', color: '#3B6D11', fontWeight: 600 }}>Compare</th>
               <th style={{ padding: '0.75rem 1rem', textAlign: 'left', color: '#3B6D11', fontWeight: 600 }}>Edit summary</th>
+              <th style={{ padding: '0.75rem 1rem', textAlign: 'left', color: '#3B6D11', fontWeight: 600 }}>Editor</th>
               <th style={{ padding: '0.75rem 1rem', textAlign: 'left', color: '#3B6D11', fontWeight: 600 }}>Trust</th>
               <th style={{ padding: '0.75rem 1rem', textAlign: 'left', color: '#3B6D11', fontWeight: 600 }}>Date</th>
+              <th style={{ padding: '0.75rem 1rem', textAlign: 'left', color: '#3B6D11', fontWeight: 600 }}>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -81,24 +115,39 @@ export default function HistoryPage() {
                 <td style={{ padding: '0.65rem 1rem' }}>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <label style={{ fontSize: '0.8rem', color: '#555' }}>
-                      <input type="radio" name="compareA" checked={compareA === rev.id}
-                        onChange={() => setCompareA(rev.id)} style={{ marginRight: 4 }} />
+                      <input type="radio" name="compareA" checked={compareA === rev.id} onChange={() => setCompareA(rev.id)} style={{ marginRight: 4 }} />
                       From
                     </label>
                     <label style={{ fontSize: '0.8rem', color: '#555' }}>
-                      <input type="radio" name="compareB" checked={compareB === rev.id}
-                        onChange={() => setCompareB(rev.id)} style={{ marginRight: 4 }} />
+                      <input type="radio" name="compareB" checked={compareB === rev.id} onChange={() => setCompareB(rev.id)} style={{ marginRight: 4 }} />
                       To
                     </label>
                   </div>
                 </td>
                 <td style={{ padding: '0.65rem 1rem', color: '#333', fontSize: '0.9rem' }}>{rev.edit_summary}</td>
+                <td style={{ padding: '0.65rem 1rem', fontSize: '0.88rem' }}>
+                  {rev.edited_by ? (
+                    <Link href={`/community/members/${rev.edited_by}`} style={{ color: '#3B6D11', textDecoration: 'none', fontWeight: 500 }}>
+                      {rev.editor_name || 'Unknown'}
+                    </Link>
+                  ) : (
+                    <span style={{ color: '#999' }}>AI / System</span>
+                  )}
+                </td>
                 <td style={{ padding: '0.65rem 1rem' }}>
                   <span style={{ background: rev.trust_level === 'ai_generated' ? '#FFF3CD' : '#D4EDDA', color: rev.trust_level === 'ai_generated' ? '#856404' : '#155724', padding: '0.15rem 0.5rem', borderRadius: 10, fontSize: '0.78rem' }}>
                     {rev.trust_level === 'ai_generated' ? 'AI' : 'Verified'}
                   </span>
                 </td>
                 <td style={{ padding: '0.65rem 1rem', color: '#999', fontSize: '0.85rem' }}>{new Date(rev.created_at).toLocaleString()}</td>
+                <td style={{ padding: '0.65rem 1rem' }}>
+                  {i > 0 && (
+                    <button onClick={() => handleRevert(rev.id)} disabled={reverting === rev.id}
+                      style={{ background: reverting === rev.id ? '#999' : '#fff', color: reverting === rev.id ? '#fff' : '#dc3545', border: '1px solid #dc3545', borderRadius: 6, padding: '0.3rem 0.7rem', cursor: reverting === rev.id ? 'not-allowed' : 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>
+                      {reverting === rev.id ? '...' : 'Revert'}
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

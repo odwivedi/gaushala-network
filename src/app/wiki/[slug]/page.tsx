@@ -3,6 +3,7 @@ import logger from '@/lib/logger';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import SiteNav from '@/components/SiteNav';
+import TalkSection from '@/components/TalkSection';
 import { useParams } from 'next/navigation';
 
 interface Article {
@@ -87,6 +88,7 @@ export default function ArticlePage() {
           </div>
         ))}
       </div>
+      {article && <TalkSection entity_type="article" entity_id={article.id} />}
     </div>
     </>
   );

@@ -22,8 +22,10 @@ export async function GET(_req: NextRequest, { params }: { params: { slug: strin
     article.content = await getArticleContent(article.mongo_content_id);
 
     const revisions = await query(
-      `SELECT id, edit_summary, trust_level, edited_by, created_at
-       FROM article_revisions WHERE article_id = $1 ORDER BY created_at DESC`,
+      `SELECT ar.id, ar.edit_summary, ar.trust_level, ar.edited_by, ar.created_at, u.display_name as editor_name
+       FROM article_revisions ar
+       LEFT JOIN users u ON ar.edited_by = u.id
+       WHERE ar.article_id = $1 ORDER BY ar.created_at DESC`,
       [article.id]
     );
     article.revisions = revisions.rows;

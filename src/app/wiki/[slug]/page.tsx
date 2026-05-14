@@ -121,7 +121,7 @@ export default function ArticlePage() {
       )}
 
       <div style={{ border: '1px solid #e0e0e0', borderRadius: 10, padding: '1.5rem', background: '#fff', marginBottom: '1.5rem' }}>
-        <div className="prose-content" dangerouslySetInnerHTML={{ __html: article.content }} />
+        <div className="prose-content" dangerouslySetInnerHTML={{ __html: article.content || '' }} />
       </div>
 
       <div style={{ border: '1px solid #e0e0e0', borderRadius: 10, padding: '1.25rem', background: '#FAFAFA' }}>

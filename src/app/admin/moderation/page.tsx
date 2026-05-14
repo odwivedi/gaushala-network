@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import * as Diff from 'diff';
 
-const TABS = ['pending', 'approved', 'rejected', 'flags', 'bans', 'users'];
+const TABS = ['pending', 'approved', 'rejected', 'flags', 'bans', 'users', 'blockchain'];
 
 const TRUST_LEVELS = ['registered', 'email_verified', 'contributor', 'verified_expert', 'trusted_editor', 'moderator', 'admin', 'banned'];
 
@@ -53,6 +53,11 @@ export default function ModerationPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [userSearch, setUserSearch] = useState('');
 
+  // Blockchain
+  const [blockchainRecords, setBlockchainRecords] = useState<{id:number;record_type:string;entity_type:string;entity_id:number;tx_hash:string;network:string;data_hash:string;explorer_url:string;created_at:string}[]>([]);
+  const [walletBalance, setWalletBalance] = useState('');
+  const [blockchainWriting, setBlockchainWriting] = useState(false);
+
   const headers = { 'x-admin-secret': secret };
 
   const fetchQueue = useCallback((tab: string) => {
@@ -76,6 +81,13 @@ export default function ModerationPage() {
       .catch(() => setLoading(false));
   }, [secret]);
 
+  const fetchBlockchain = useCallback(() => {
+    setLoading(true);
+    fetch('/api/blockchain', { headers })
+      .then(r => r.json()).then(d => { setBlockchainRecords(d.records || []); setWalletBalance(d.wallet_balance || ''); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [secret]);
+
   const fetchUsers = useCallback(() => {
     setLoading(true);
     fetch('/api/admin/users', { headers })
@@ -89,6 +101,7 @@ export default function ModerationPage() {
     else if (activeTab === 'flags') fetchFlags();
     else if (activeTab === 'bans') fetchBans();
     else if (activeTab === 'users') fetchUsers();
+    else if (activeTab === 'blockchain') fetchBlockchain();
   }, [authed, activeTab, fetchQueue, fetchFlags, fetchBans, fetchUsers]);
 
   useEffect(() => {
@@ -360,6 +373,61 @@ export default function ModerationPage() {
                       {TRUST_LEVELS.map(tl => <option key={tl} value={tl}>{tl}</option>)}
                     </select>
                   </div>
+                </div>
+              </div>
+            ))
+          }
+        </div>
+      )}
+
+      {/* Blockchain tab */}
+      {activeTab === 'blockchain' && !loading && (
+        <div>
+          <div style={{ background: '#EAF3DE', border: '1px solid #c3dfa0', borderRadius: 10, padding: '1rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <span style={{ fontWeight: 600, color: '#3B6D11' }}>Wallet:</span>
+              <span style={{ fontFamily: 'monospace', fontSize: 13, marginLeft: 8 }}>0x00A6115bd1AC75d13038F4766F431D4C0516549f</span>
+            </div>
+            <div>
+              <span style={{ fontWeight: 600, color: '#3B6D11' }}>Balance:</span>
+              <span style={{ fontSize: 13, marginLeft: 8 }}>{walletBalance} POL</span>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+            {[
+              { label: 'Commons Declaration', type: 'commons_declaration', entity_type: null, entity_id: null },
+            ].map((action, i) => (
+              <button key={i} disabled={blockchainWriting}
+                onClick={() => {
+                  setBlockchainWriting(true);
+                  fetch('/api/blockchain', { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ record_type: action.type, entity_type: action.entity_type, entity_id: action.entity_id }) })
+                    .then(r => r.json()).then(d => {
+                      if (d.success) { fetchBlockchain(); alert('Written to chain: ' + d.tx_hash); }
+                      else alert('Failed: ' + d.error);
+                      setBlockchainWriting(false);
+                    });
+                }}
+                style={{ padding: '0.5rem 1rem', background: '#3B6D11', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
+                {blockchainWriting ? 'Writing...' : '⛓ ' + action.label}
+              </button>
+            ))}
+          </div>
+          {blockchainRecords.length === 0 ? <p style={{ color: '#666' }}>No blockchain records yet.</p> :
+            blockchainRecords.map((r, i) => (
+              <div key={i} style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 10, padding: '1rem', marginBottom: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <span style={{ fontWeight: 600 }}>{r.record_type}</span>
+                    {r.entity_type && <span style={{ color: '#666', fontSize: 13, marginLeft: 8 }}>{r.entity_type} #{r.entity_id}</span>}
+                    <span style={{ color: '#888', fontSize: 12, marginLeft: 8 }}>{r.network}</span>
+                  </div>
+                  <span style={{ fontSize: 12, color: '#999' }}>{new Date(r.created_at).toLocaleDateString()}</span>
+                </div>
+                <div style={{ marginTop: '0.4rem' }}>
+                  <a href={r.explorer_url} target="_blank" rel="noreferrer"
+                    style={{ color: '#3B6D11', fontSize: 12, fontFamily: 'monospace' }}>{r.tx_hash?.slice(0, 20)}...
+                  </a>
                 </div>
               </div>
             ))

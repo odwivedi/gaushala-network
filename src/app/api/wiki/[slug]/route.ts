@@ -1,6 +1,7 @@
 import logger from '@/lib/logger';
 import { query } from '@/lib/db-postgres';
 import { getArticleContent, saveArticleContent } from '@/lib/db-mongo';
+import { indexArticle } from '@/lib/search';
 import { getSessionFromRequest } from '@/lib/auth';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -78,6 +79,7 @@ export async function PUT(req: NextRequest, { params }: { params: { slug: string
         [article.id, revResult.rows[0].id, user?.id || null]
       );
       logger.info('API', 'wiki/[slug]/route.ts', 'Edit sent to moderation queue', { slug: params.slug, user_id: user?.id });
+    indexArticle({ id: article.id, title: title || article.title, slug: params.slug, summary: summary || article.summary, trust_level: trustLevel, category_name: null, content: content || '' });
       return NextResponse.json({ success: true, queued: true, message: 'Your edit has been submitted for review.' });
     }
 

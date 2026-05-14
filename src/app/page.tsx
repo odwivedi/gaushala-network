@@ -61,7 +61,7 @@ export default function Home() {
     { icon: <IconStars size={20} color="#854F0B" />, bg: '#FAEEDA', title: 'Jyotish & remedies', desc: 'Go-daan, remedies by graha, muhurta for Gau Seva. Classical Jyotish knowledge, cited and structured.', count: `${layerCounts.grahas} grahas documented`, href: '/jyotish' },
     { icon: <IconPalette size={20} color="#3B6D11" />, bg: '#EAF3DE', title: 'Culture & traditions', desc: 'Festivals, folk art, regional traditions — Gopashtami to Mattu Pongal. Every state of India.', count: `${layerCounts.festivals} festivals documented`, href: '/culture' },
     { icon: <IconUsers size={20} color="#3B6D11" />, bg: '#EAF3DE', title: 'Community', desc: 'Connect with vets, scholars, gaushala managers. Contribute knowledge. Coordinate resources.', count: `${layerCounts.members} members`, href: '/community' },
-    { icon: <IconStethoscope size={20} color="#c0392b" />, bg: '#fff0f0', title: 'Symptom Checker', desc: 'Describe your cow&apos;s symptoms and get an AI-assisted veterinary assessment instantly.', count: 'AI-powered', href: '/symptom-checker' },
+    { icon: <IconStethoscope size={20} color="#c0392b" />, bg: '#fff0f0', title: 'Symptom Checker', desc: 'Describe your cow’s symptoms and get an AI-assisted veterinary assessment instantly.', count: 'AI-powered', href: '/symptom-checker' },
     { icon: <IconMessageCircle size={20} color="#2980b9" />, bg: '#f0f4ff', title: 'Ask About Cows', desc: 'Natural language Q&A over the entire knowledge base — breeds, Ayurveda, traditions, care.', count: 'AI-powered', href: '/ask' },
   ];
 

@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import logger from '@/lib/logger';
 import { query } from '@/lib/db-postgres';
 import { NextResponse } from 'next/server';

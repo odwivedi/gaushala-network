@@ -1,6 +1,7 @@
 import logger from '@/lib/logger';
 import { query } from '@/lib/db-postgres';
 import { saveArticleContent } from '@/lib/db-mongo';
+import { indexArticle } from '@/lib/search';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(req: NextRequest) {
@@ -65,6 +66,7 @@ export async function POST(req: NextRequest) {
     );
 
     logger.info('API', 'wiki/route.ts', 'Article created', { id: article.id, slug });
+    indexArticle({ id: article.id, title: article.title, slug: article.slug, summary: article.summary, trust_level: article.trust_level, category_name: null, content: content || '' });
     return NextResponse.json({ success: true, article }, { status: 201 });
   } catch (err) {
     logger.error('API', 'wiki/route.ts', 'POST failed', { err: String(err) });

@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 2000,
         messages: [
           {
@@ -62,10 +62,12 @@ Respond in this exact JSON format with no markdown:
     const text = data.content?.[0]?.text || '';
     let parsed;
     try {
-      parsed = JSON.parse(text);
-    } catch {
-      logger.error('API', 'wiki/generate/route.ts', 'Failed to parse Claude response', { text: text.slice(0, 200) });
-      return NextResponse.json({ success: false, error: 'Failed to parse AI response' }, { status: 500 });
+      // Strip markdown fences if present
+      const clean = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+      parsed = JSON.parse(clean);
+    } catch (parseErr) {
+      logger.error('API', 'wiki/generate/route.ts', 'Failed to parse Claude response', { text: text.slice(0, 500), err: String(parseErr) });
+      return NextResponse.json({ success: false, error: 'Failed to parse AI response', debug: String(parseErr) }, { status: 500 });
     }
 
     logger.info('API', 'wiki/generate/route.ts', 'Article generated', { topic, slug: parsed.slug });

@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import * as Diff from 'diff';
 
-const TABS = ['pending', 'approved', 'rejected', 'flags', 'bans', 'users', 'blockchain'];
+const TABS = ['pending', 'approved', 'rejected', 'flags', 'bans', 'users', 'blockchain', 'generate'];
 
 const TRUST_LEVELS = ['registered', 'email_verified', 'contributor', 'verified_expert', 'trusted_editor', 'moderator', 'admin', 'banned'];
 
@@ -52,6 +52,15 @@ export default function ModerationPage() {
   // Users
   const [users, setUsers] = useState<User[]>([]);
   const [userSearch, setUserSearch] = useState('');
+
+  // Generate
+  const [genTopic, setGenTopic] = useState('');
+  const [genCategory, setGenCategory] = useState('Cow Breeds');
+  const [genLoading, setGenLoading] = useState(false);
+  const [genResult, setGenResult] = useState<{title:string;slug:string;summary:string;content:string} | null>(null);
+  const [genError, setGenError] = useState('');
+  const [genSaving, setGenSaving] = useState(false);
+  const [genSaved, setGenSaved] = useState(false);
 
   // Blockchain
   const [blockchainRecords, setBlockchainRecords] = useState<{id:number;record_type:string;entity_type:string;entity_id:number;tx_hash:string;network:string;data_hash:string;explorer_url:string;created_at:string}[]>([]);
@@ -432,6 +441,75 @@ export default function ModerationPage() {
               </div>
             ))
           }
+        </div>
+      )}
+
+      {/* Generate tab */}
+      {activeTab === 'generate' && (
+        <div>
+          <h2 style={{ color: '#3B6D11', marginTop: 0 }}>AI Article Generator</h2>
+          <p style={{ color: '#666', fontSize: 14, marginBottom: '1.5rem' }}>Generate a wiki article using Claude AI. Review before saving.</p>
+          <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 12, padding: '1.25rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', gap: 8, marginBottom: '1rem', flexWrap: 'wrap' }}>
+              <input placeholder="Topic (e.g. Sahiwal Cow)" value={genTopic} onChange={e => { setGenTopic(e.target.value); setGenResult(null); setGenSaved(false); setGenError(''); }}
+                style={{ flex: 2, padding: '0.5rem', borderRadius: 8, border: '1px solid #ccc', fontSize: 14, minWidth: 200 }} />
+              <select value={genCategory} onChange={e => setGenCategory(e.target.value)}
+                style={{ flex: 1, padding: '0.5rem', borderRadius: 8, border: '1px solid #ccc', fontSize: 14 }}>
+                {['Cow Breeds', 'Diseases & Symptoms', 'Treatments & Protocols', 'Nutrition & Feed', 'Genetics & Breeding', 'Research'].map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <button disabled={genLoading || !genTopic.trim()} onClick={() => {
+                setGenLoading(true); setGenResult(null); setGenError(''); setGenSaved(false);
+                fetch('/api/wiki/generate', { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ topic: genTopic, category: genCategory }) })
+                  .then(r => r.json()).then(d => {
+                    if (d.success) setGenResult(d.article);
+                    else setGenError(d.error || 'Generation failed');
+                    setGenLoading(false);
+                  }).catch(() => { setGenError('Failed to connect'); setGenLoading(false); });
+              }}
+                style={{ padding: '0.5rem 1.5rem', background: genTopic.trim() ? '#3B6D11' : '#ccc', color: '#fff', border: 'none', borderRadius: 8, cursor: genTopic.trim() ? 'pointer' : 'not-allowed', fontWeight: 600 }}>
+                {genLoading ? 'Generating...' : '✨ Generate'}
+              </button>
+            </div>
+            {genError && <p style={{ color: '#c0392b', fontSize: 13 }}>{genError}</p>}
+          </div>
+          {genLoading && (
+            <div style={{ background: '#EAF3DE', borderRadius: 10, padding: '1.5rem', textAlign: 'center', color: '#3B6D11' }}>
+              <p style={{ margin: 0, fontWeight: 500 }}>Claude is writing the article...</p>
+            </div>
+          )}
+          {genResult && (
+            <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 12, padding: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                <div>
+                  <h3 style={{ margin: '0 0 0.25rem', color: '#3B6D11' }}>{genResult.title}</h3>
+                  <p style={{ margin: '0 0 0.5rem', color: '#666', fontSize: 13 }}>{genResult.summary}</p>
+                  <span style={{ fontSize: 12, color: '#888', fontFamily: 'monospace' }}>/{genResult.slug}</span>
+                </div>
+                {genSaved ? (
+                  <span style={{ background: '#EAF3DE', color: '#3B6D11', padding: '0.5rem 1rem', borderRadius: 8, fontWeight: 600, fontSize: 14 }}>✓ Saved</span>
+                ) : (
+                  <button disabled={genSaving} onClick={() => {
+                    setGenSaving(true);
+                    fetch('/api/wiki', { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ title: genResult.title, slug: genResult.slug, summary: genResult.summary, content: genResult.content, category_id: null }) })
+                      .then(r => r.json()).then(d => {
+                        if (d.success) { setGenSaved(true); }
+                        else setGenError(d.error || 'Save failed');
+                        setGenSaving(false);
+                      });
+                  }}
+                    style={{ padding: '0.5rem 1.5rem', background: '#3B6D11', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>
+                    {genSaving ? 'Saving...' : 'Save to Wiki'}
+                  </button>
+                )}
+              </div>
+              <div style={{ background: '#f9f9f9', borderRadius: 8, padding: '1rem', maxHeight: 300, overflowY: 'auto', fontSize: 13, color: '#444' }}
+                dangerouslySetInnerHTML={{ __html: genResult.content }} />
+            </div>
+          )}
         </div>
       )}
     </div>

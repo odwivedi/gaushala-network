@@ -67,7 +67,8 @@ Respond in this exact JSON format with no markdown:
     const text = data.content?.[0]?.text || '';
     let parsed;
     try {
-      parsed = JSON.parse(text);
+      const clean = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+      parsed = JSON.parse(clean);
     } catch {
       logger.error('API', 'ai/ask/route.ts', 'Parse failed', { text: text.slice(0, 200) });
       return NextResponse.json({ success: false, error: 'Failed to parse AI response' }, { status: 500 });

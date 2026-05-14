@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import * as Diff from 'diff';
 
-const TABS = ['pending', 'approved', 'rejected', 'flags', 'bans', 'users', 'blockchain', 'generate'];
+const TABS = ['pending', 'approved', 'rejected', 'flags', 'bans', 'users', 'blockchain', 'generate', 'pipeline'];
 
 const TRUST_LEVELS = ['registered', 'email_verified', 'contributor', 'verified_expert', 'trusted_editor', 'moderator', 'admin', 'banned'];
 
@@ -62,6 +62,10 @@ export default function ModerationPage() {
   const [genSaving, setGenSaving] = useState(false);
   const [genSaved, setGenSaved] = useState(false);
 
+  // Pipeline
+  const [pipelineJobs, setPipelineJobs] = useState<{id:number;job_name:string;status:string;records_attempted:number;records_succeeded:number;records_failed:number;started_at:string;completed_at:string}[]>([]);
+  const [pipelineRunning, setPipelineRunning] = useState(false);
+
   // Blockchain
   const [blockchainRecords, setBlockchainRecords] = useState<{id:number;record_type:string;entity_type:string;entity_id:number;tx_hash:string;network:string;data_hash:string;explorer_url:string;created_at:string}[]>([]);
   const [walletBalance, setWalletBalance] = useState('');
@@ -90,6 +94,12 @@ export default function ModerationPage() {
       .catch(() => setLoading(false));
   }, [secret]);
 
+  const fetchPipeline = useCallback(() => {
+    fetch('/api/pipeline', { headers })
+      .then(r => r.json()).then(d => setPipelineJobs(d.jobs || []))
+      .catch(() => {});
+  }, [secret]);
+
   const fetchBlockchain = useCallback(() => {
     setLoading(true);
     fetch('/api/blockchain', { headers })
@@ -111,6 +121,7 @@ export default function ModerationPage() {
     else if (activeTab === 'bans') fetchBans();
     else if (activeTab === 'users') fetchUsers();
     else if (activeTab === 'blockchain') fetchBlockchain();
+    else if (activeTab === 'pipeline') fetchPipeline();
   }, [authed, activeTab, fetchQueue, fetchFlags, fetchBans, fetchUsers]);
 
   useEffect(() => {
@@ -510,6 +521,56 @@ export default function ModerationPage() {
                 dangerouslySetInnerHTML={{ __html: genResult.content }} />
             </div>
           )}
+        </div>
+      )}
+
+      {/* Pipeline tab */}
+      {activeTab === 'pipeline' && (
+        <div>
+          <h2 style={{ color: '#3B6D11', marginTop: 0 }}>AI Pipeline</h2>
+          <p style={{ color: '#666', fontSize: 14, marginBottom: '1.5rem' }}>Run automated AI jobs across the knowledge base.</p>
+          <div style={{ display: 'flex', gap: 12, marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+            {[
+              { label: 'Auto-Categorise Articles', action: 'auto_categorise', desc: 'Assign categories to uncategorised articles using AI' },
+              { label: 'Quality Check', action: 'quality_check', desc: 'Score AI-generated articles and flag low quality ones' },
+            ].map((job, i) => (
+              <div key={i} style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 10, padding: '1rem', flex: 1, minWidth: 220 }}>
+                <p style={{ margin: '0 0 0.25rem', fontWeight: 600, fontSize: 14 }}>{job.label}</p>
+                <p style={{ margin: '0 0 0.75rem', fontSize: 12, color: '#888' }}>{job.desc}</p>
+                <button disabled={pipelineRunning}
+                  onClick={() => {
+                    setPipelineRunning(true);
+                    fetch('/api/pipeline', { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ action: job.action }) })
+                      .then(r => r.json()).then(d => {
+                        alert(`Done — ${d.succeeded} succeeded, ${d.failed} failed`);
+                        fetchPipeline();
+                        setPipelineRunning(false);
+                      }).catch(() => setPipelineRunning(false));
+                  }}
+                  style={{ padding: '0.4rem 1rem', background: '#3B6D11', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
+                  {pipelineRunning ? 'Running...' : '▶ Run'}
+                </button>
+              </div>
+            ))}
+          </div>
+          <h3 style={{ color: '#3B6D11', fontSize: '1rem', marginBottom: '0.75rem' }}>Job History</h3>
+          {pipelineJobs.length === 0 ? <p style={{ color: '#666' }}>No jobs run yet.</p> :
+            pipelineJobs.map(j => (
+              <div key={j.id} style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 10, padding: '1rem', marginBottom: '0.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <span style={{ fontWeight: 600, fontSize: 14 }}>{j.job_name}</span>
+                    <span style={{ marginLeft: 8 }}>{pill(j.status === 'completed' ? '#3B6D11' : j.status === 'running' ? '#e67e22' : '#c0392b', j.status)}</span>
+                  </div>
+                  <span style={{ fontSize: 12, color: '#999' }}>{new Date(j.started_at).toLocaleString()}</span>
+                </div>
+                <p style={{ margin: '0.3rem 0 0', fontSize: 13, color: '#666' }}>
+                  {j.records_attempted} attempted · {j.records_succeeded} succeeded · {j.records_failed} failed
+                </p>
+              </div>
+            ))
+          }
         </div>
       )}
     </div>

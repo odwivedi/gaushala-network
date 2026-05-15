@@ -1,6 +1,6 @@
 'use client';
 import logger from '@/lib/logger';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import SiteNav from '@/components/SiteNav';
 
@@ -8,6 +8,15 @@ interface Result {
   answer: string;
   related_topics: string[];
   confidence: 'high' | 'medium' | 'low';
+}
+
+interface HistoryItem {
+  id: number;
+  question: string;
+  answer: string;
+  related_topics: string[];
+  confidence: string;
+  created_at: string;
 }
 
 const SAMPLE_QUESTIONS = [
@@ -25,6 +34,29 @@ export default function AskPage() {
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState('');
   const [history, setHistory] = useState<{ question: string; result: Result }[]>([]);
+  const [savedHistory, setSavedHistory] = useState<HistoryItem[]>([]);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showSaved, setShowSaved] = useState(false);
+
+  useEffect(() => {
+    // Auto-ask if question param present
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get('q');
+    if (q) { setQuestion(q); handleAsk(q); }
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.user) {
+          setIsLoggedIn(true);
+          fetch('/api/ai/ask')
+            .then(r => r.json())
+            .then(h => { if (h.success) setSavedHistory(h.history || []); });
+        }
+      }).catch(() => {});
+  }, []);
 
   function confidenceColor(c: string) {
     if (c === 'high') return '#3B6D11';
@@ -133,13 +165,40 @@ export default function AskPage() {
               </div>
             </div>
           )}
+          {!isLoggedIn && (
+            <div style={{ marginTop: '1rem', background: '#EAF3DE', borderRadius: 8, padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 13, color: '#3B6D11' }}>Sign in to save your Q&A history and access it anytime.</span>
+              <a href={`/login?from=/ask?q=${encodeURIComponent(question)}`} style={{ fontSize: 13, fontWeight: 600, color: '#3B6D11', textDecoration: 'none', background: '#fff', border: '1px solid #3B6D11', padding: '0.3rem 0.8rem', borderRadius: 6 }}>Sign in</a>
+            </div>
+          )}
         </div>
       )}
 
-      {/* History */}
+      {/* Saved history toggle */}
+      {isLoggedIn && savedHistory.length > 0 && (
+        <div style={{ marginBottom: '1rem' }}>
+          <button onClick={() => setShowSaved(!showSaved)}
+            style={{ background: 'none', border: '1px solid #3B6D11', color: '#3B6D11', padding: '0.4rem 1rem', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 500 }}>
+            {showSaved ? 'Hide' : 'Show'} saved history ({savedHistory.length})
+          </button>
+          {showSaved && (
+            <div style={{ marginTop: '0.75rem' }}>
+              {savedHistory.map((h) => (
+                <div key={h.id} style={{ background: '#fafafa', border: '1px solid #eee', borderRadius: 10, padding: '1rem', marginBottom: '0.5rem', cursor: 'pointer' }}
+                  onClick={() => { setQuestion(h.question); setResult({ answer: h.answer, related_topics: h.related_topics, confidence: h.confidence as 'high' | 'medium' | 'low' }); setShowSaved(false); }}>
+                  <p style={{ margin: 0, fontWeight: 500, fontSize: 14, color: '#333' }}>{h.question}</p>
+                  <p style={{ margin: '0.25rem 0 0', fontSize: 12, color: '#888' }}>{h.answer.slice(0, 100)}...</p>
+                  <p style={{ margin: '0.25rem 0 0', fontSize: 11, color: '#bbb' }}>{new Date(h.created_at).toLocaleDateString()}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {history.length > 1 && (
         <div>
-          <h3 style={{ color: '#888', fontSize: '0.9rem', marginBottom: '0.75rem' }}>Previous questions</h3>
+          <h3 style={{ color: '#888', fontSize: '0.9rem', marginBottom: '0.75rem' }}>Previous questions (this session)</h3>
           {history.slice(1).map((h, i) => (
             <div key={i} style={{ background: '#fafafa', border: '1px solid #eee', borderRadius: 10, padding: '1rem', marginBottom: '0.5rem', cursor: 'pointer' }}
               onClick={() => { setQuestion(h.question); setResult(h.result); }}>

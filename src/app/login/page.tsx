@@ -25,7 +25,8 @@ export default function LoginPage() {
       const data = await res.json();
       if (data.success) {
         logger.info('UI', 'login/page.tsx', 'Login successful', { email });
-        router.push('/wiki');
+        const returnTo = new URLSearchParams(window.location.search).get('from') || '/ask';
+        router.push(returnTo);
       } else {
         setError(data.error);
       }

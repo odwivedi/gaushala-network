@@ -1,8 +1,27 @@
 import logger from '@/lib/logger';
 import { query } from '@/lib/db-postgres';
+import { getSessionFromRequest } from '@/lib/auth';
 import { NextRequest, NextResponse } from 'next/server';
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
+
+export async function GET(req: NextRequest) {
+  try {
+    const session = await getSessionFromRequest(req);
+    if (!session) return NextResponse.json({ success: false, error: 'Login required' }, { status: 401 });
+
+    const result = await query(
+      `SELECT id, question, answer, related_topics, confidence, created_at
+       FROM qa_history WHERE user_id = $1 ORDER BY created_at DESC LIMIT 20`,
+      [session.id]
+    );
+
+    return NextResponse.json({ success: true, history: result.rows });
+  } catch (err) {
+    logger.error('API', 'ai/ask/route.ts', 'GET history failed', { err: String(err) });
+    return NextResponse.json({ success: false, error: 'Failed to fetch history' }, { status: 500 });
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,14 +35,12 @@ export async function POST(req: NextRequest) {
 
     logger.info('API', 'ai/ask/route.ts', 'Question received', { question: question.slice(0, 100) });
 
-    // Fetch relevant wiki articles as context
     const articles = await query(
-      `SELECT a.title, a.summary FROM articles a
-       ORDER BY a.updated_at DESC LIMIT 20`
+      `SELECT a.title, a.summary FROM articles a ORDER BY a.updated_at DESC LIMIT 20`
     );
 
     const context = articles.rows
-      .map(a => `Title: ${a.title}\nSummary: ${a.summary || 'No summary'}`)
+      .map((a: {title:string;summary:string}) => `Title: ${a.title}\nSummary: ${a.summary || 'No summary'}`)
       .join('\n\n');
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -69,10 +86,23 @@ Respond in this exact JSON format with no markdown:
     try {
       const clean = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
       parsed = JSON.parse(clean);
-    } catch {
-      logger.error('API', 'ai/ask/route.ts', 'Parse failed', { text: text.slice(0, 200) });
+    } catch (parseErr) {
+      logger.error('API', 'ai/ask/route.ts', 'Parse failed', { text: text.slice(0, 200), err: String(parseErr) });
       return NextResponse.json({ success: false, error: 'Failed to parse AI response' }, { status: 500 });
     }
+
+    // Save to history if user is logged in
+    try {
+      const session = await getSessionFromRequest(req);
+      if (session) {
+        await query(
+          `INSERT INTO qa_history (user_id, question, answer, related_topics, confidence)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [session.id, question, parsed.answer, parsed.related_topics || [], parsed.confidence || 'medium']
+        );
+        logger.info('API', 'ai/ask/route.ts', 'Q&A saved to history', { user_id: session.id });
+      }
+    } catch { /* silent — saving history is optional */ }
 
     logger.info('API', 'ai/ask/route.ts', 'Question answered', { confidence: parsed.confidence });
     return NextResponse.json({ success: true, result: parsed });

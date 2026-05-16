@@ -129,15 +129,18 @@ export default function SiteNav() {
       </div>
 
       <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
-        {['Directory', 'Map', 'Wiki', 'Ask'].map(link => (
-          <Link key={link} href={link === 'Map' ? '/map' : `/${link.toLowerCase()}`}
+        {['Directory', 'Wiki', 'Contribute', 'Ask'].map(link => (
+          <Link key={link} href={`/${link.toLowerCase()}`}
             style={{ fontSize: 13, color: '#555', textDecoration: 'none' }}>{link}</Link>
         ))}
         {user ? (
           <>
             <span style={{ fontSize: 13, color: '#3B6D11', fontWeight: 500 }}>{user.display_name}</span>
             {user.can_moderate && (
-              <Link href="/admin/moderation" style={{ fontSize: 13, color: '#856404', background: '#FFF3CD', padding: '4px 10px', borderRadius: 6, textDecoration: 'none', fontWeight: 500 }}>Moderation</Link>
+              <>
+                <Link href="/admin/moderation" style={{ fontSize: 13, color: '#856404', background: '#FFF3CD', padding: '4px 10px', borderRadius: 6, textDecoration: 'none', fontWeight: 500 }}>Moderation</Link>
+                <Link href="/admin/contributions" style={{ fontSize: 13, color: '#6b21a8', background: '#f3e8ff', padding: '4px 10px', borderRadius: 6, textDecoration: 'none', fontWeight: 500 }}>Contributions</Link>
+              </>
             )}
             <button onClick={handleLogout}
               style={{ fontSize: 13, color: '#666', background: 'none', border: '1px solid #ccc', borderRadius: 6, padding: '4px 12px', cursor: 'pointer' }}>

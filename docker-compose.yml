@@ -9,6 +9,8 @@ services:
       - "3003:3000"
     env_file:
       - .env
+    volumes:
+      - /home/openclaw/gaushala-network/public/uploads:/app/public/uploads
     depends_on:
       - gaushala-postgres
       - gaushala-mongo

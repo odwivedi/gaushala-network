@@ -78,8 +78,8 @@ export default function Home() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
-          {['Directory', 'Map', 'Wiki', 'Scripture', 'Jyotish', 'Culture', 'Community', 'Ask'].map(link => (
-            <a key={link} href={link === 'Map' ? '/map' : `/${link.toLowerCase()}`} style={{ fontSize: 13, color: '#555' }}>{link}</a>
+          {['Directory', 'Wiki', 'Contribute', 'Scripture', 'Jyotish', 'Culture', 'Community', 'Ask'].map(link => (
+            <a key={link} href={`/${link.toLowerCase()}`} style={{ fontSize: 13, color: '#555' }}>{link}</a>
           ))}
           <a href="/login" style={{ fontSize: 13, color: '#555' }}>Sign in</a>
           <a href="/register" style={{ fontSize: 13, background: '#3B6D11', color: '#EAF3DE', padding: '6px 16px', borderRadius: 8 }}>Register</a>
